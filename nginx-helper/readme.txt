@@ -5,8 +5,8 @@ Tags: nginx, cache, purge, nginx map, nginx cache, maps, fastcgi, proxy, redis, 
 License: GPLv2 or later (of-course)
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 Requires at least: 3.0
-Tested up to: 6.4
-Stable tag: 2.2.3
+Tested up to: 6.4.2
+Stable tag: 2.2.4
 
 Cleans nginx's fastcgi/proxy cache or redis-cache whenever a post is edited/published. Also does a few more things.
 
@@ -126,6 +126,10 @@ Please post your problem in [our free support forum](https://github.com/rtCamp/n
 2. Remaining settings
 
 == Changelog ==
+
+= 2.2.4 =
+* Introduces the capability to specify the `NGINX_HELPER_LOG` constant, allowing users to activate the logging feature. [#318](https://github.com/rtCamp/nginx-helper/pull/318) - by [Vishal Kakadiya](https://github.com/vishalkakadiya)
+* Existing users employing the nginx-helper plugin with logging enabled will experience no disruptions. However, if logging is disabled, users must define the `NGINX_HELPER_LOG` constant to re-enable the logging feature.
 
 = 2.2.3 =
 * Add the URL being purged as parameter in `rt_nginx_helper_purge_cached_file` hook. [#271](https://github.com/rtCamp/nginx-helper/pull/271) - by [Arafat Islam](https://github.com/arafatkn)
