@@ -22,6 +22,12 @@ $args = array(
 	'redis_hostname',
 	'redis_port',
 	'redis_prefix',
+	'redis_database',
+	'redis_username',
+	'redis_password',
+	'redis_unix_socket',
+	'redis_socket_enabled_by_constant',
+	'redis_acl_enabled_by_constant',
 	'purge_homepage_on_edit',
 	'purge_homepage_on_del',
 	'purge_url',
@@ -38,7 +44,10 @@ $args = array(
 	'purge_page_on_mod',
 	'purge_page_on_new_comment',
 	'purge_page_on_deleted_comment',
+	'purge_feeds',
 	'smart_http_expire_form_nonce',
+	'purge_amp_urls',
+	'preload_cache',
 );
 
 $all_inputs = array();
@@ -57,6 +66,25 @@ if ( isset( $all_inputs['smart_http_expire_save'] ) && wp_verify_nonce( $all_inp
 		$all_inputs,
 		$nginx_helper_admin->nginx_helper_default_settings()
 	);
+
+	$site_options = get_site_option( 'rt_wp_nginx_helper_options', array() );
+
+	foreach ( $nginx_helper_admin->nginx_helper_default_settings() as $default_setting_field => $default_setting_value ) {
+
+		// Uncheck checkbox fields whose default value is `1` but user has unchecked.
+		if ( 1 === $default_setting_value && isset( $site_options[ $default_setting_field ] ) && empty( $all_inputs[ $default_setting_field ] ) ) {
+
+			$nginx_settings[ $default_setting_field ] = 0;
+
+		}
+
+		// Populate the setting field with default value when it is empty.
+		if ( '' === $nginx_settings[ $default_setting_field ] ) {
+
+			$nginx_settings[ $default_setting_field ] = $default_setting_value;
+
+		}
+	}
 
 	if ( ( ! is_numeric( $nginx_settings['log_filesize'] ) ) || ( empty( $nginx_settings['log_filesize'] ) ) ) {
 		$error_log_filesize = __( 'Log file size must be a number.', 'nginx-helper' );
@@ -104,6 +132,12 @@ if ( is_multisite() ) {
 					<td>
 						<input type="checkbox" value="1" id="enable_purge" name="enable_purge" <?php checked( $nginx_helper_settings['enable_purge'], 1 ); ?> />
 						<label for="enable_purge"><?php esc_html_e( 'Enable Purge', 'nginx-helper' ); ?></label>
+					</td>
+				</tr>
+				<tr valign="top">
+					<td>
+						<input type="checkbox" value="1" id="preload_cache" name="preload_cache" <?php checked( $nginx_helper_settings['preload_cache'], 1 ); ?> />
+						<label for="preload_cache"><?php esc_html_e( 'Preload Cache', 'nginx-helper' ); ?></label>
 					</td>
 				</tr>
 			</table>
@@ -226,7 +260,7 @@ if ( is_multisite() ) {
 						<tr>
 							<th><label for="redis_hostname"><?php esc_html_e( 'Hostname', 'nginx-helper' ); ?></label></th>
 							<td>
-								<input id="redis_hostname" class="medium-text" type="text" name="redis_hostname" value="<?php echo esc_attr( $nginx_helper_settings['redis_hostname'] ); ?>" <?php echo ( $nginx_helper_settings['redis_enabled_by_constant'] ) ? 'readonly="readonly"' : ''; ?> />
+								<input id="redis_hostname" class="medium-text" type="text" name="redis_hostname" value="<?php echo esc_attr( $nginx_helper_settings['redis_hostname'] ); ?>" <?php echo ( $nginx_helper_settings['redis_enabled_by_constant'] || $nginx_helper_settings['redis_unix_socket'] ) ? 'readonly="readonly"' : ''; ?> />
 								<?php
 								if ( $nginx_helper_settings['redis_enabled_by_constant'] ) {
 
@@ -236,12 +270,19 @@ if ( is_multisite() ) {
 
 								}
 								?>
+								<?php
+								if ( $nginx_helper_settings['redis_unix_socket'] ) {
+									echo '<p class="description">';
+									esc_html_e( 'Overridden by unix socket path.', 'nginx-helper' );
+									echo '</p>';
+								}
+								?>
 							</td>
 						</tr>
 						<tr>
 							<th><label for="redis_port"><?php esc_html_e( 'Port', 'nginx-helper' ); ?></label></th>
 							<td>
-								<input id="redis_port" class="medium-text" type="text" name="redis_port" value="<?php echo esc_attr( $nginx_helper_settings['redis_port'] ); ?>" <?php echo ( $nginx_helper_settings['redis_enabled_by_constant'] ) ? 'readonly="readonly"' : ''; ?> />
+								<input id="redis_port" class="medium-text" type="text" name="redis_port" value="<?php echo esc_attr( $nginx_helper_settings['redis_port'] ); ?>" <?php echo ( $nginx_helper_settings['redis_enabled_by_constant'] || $nginx_helper_settings['redis_unix_socket'] ) ? 'readonly="readonly"' : ''; ?> />
 								<?php
 								if ( $nginx_helper_settings['redis_enabled_by_constant'] ) {
 
@@ -249,6 +290,30 @@ if ( is_multisite() ) {
 									esc_html_e( 'Overridden by constant variables.', 'nginx-helper' );
 									echo '</p>';
 
+								}
+								?>
+								<?php
+								if ( $nginx_helper_settings['redis_unix_socket'] ) {
+									
+									echo '<p class="description">';
+									esc_html_e( 'Overridden by unix socket path.', 'nginx-helper' );
+									echo '</p>';
+									
+								}
+								?>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="redis_unix_socket"><?php esc_html_e( 'Socket Path', 'nginx-helper' ); ?></label></th>
+							<td>
+								<input id="redis_unix_socket" class="medium-text" type="text" name="redis_unix_socket" value="<?php echo esc_attr( $nginx_helper_settings['redis_unix_socket'] ); ?>" <?php echo ( $nginx_helper_settings['redis_socket_enabled_by_constant'] ) ? 'readonly="readonly"' : ''; ?> />
+								<?php
+								if ( $nginx_helper_settings['redis_socket_enabled_by_constant'] ) {
+									
+									echo '<p class="description">';
+									esc_html_e( 'Overridden by constant variables.', 'nginx-helper' );
+									echo '</p>';
+									
 								}
 								?>
 							</td>
@@ -264,6 +329,55 @@ if ( is_multisite() ) {
 									esc_html_e( 'Overridden by constant variables.', 'nginx-helper' );
 									echo '</p>';
 
+								}
+								?>
+							</td>
+						</tr>
+						<tr>
+							<th><label for="redis_database"><?php esc_html_e( 'Database', 'nginx-helper' ); ?></label></th>
+							<td>
+								<input id="redis_database" class="medium-text" type="text" name="redis_database" value="<?php echo esc_attr( $nginx_helper_settings['redis_database'] ); ?>" <?php echo ( $nginx_helper_settings['redis_enabled_by_constant'] ) ? 'readonly="readonly"' : ''; ?> />
+								<?php
+								if ( $nginx_helper_settings['redis_enabled_by_constant'] ) {
+									
+									echo '<p class="description">';
+									esc_html_e( 'Overridden by constant variables.', 'nginx-helper' );
+									echo '</p>';
+									
+								}
+								?>
+							</td>
+						</tr>
+
+						<tr>
+							<th><label for="redis_username"><?php esc_html_e( 'Username', 'nginx-helper' ); ?></label></th>
+							<td>
+								<input id="redis_username" class="medium-text" type="text" name="redis_username" value="<?php echo esc_attr( $nginx_helper_settings['redis_username'] ); ?>" <?php echo ( $nginx_helper_settings['redis_enabled_by_constant'] ) ? 'readonly="readonly"' : ''; ?> />
+								<?php
+								if ( $nginx_helper_settings['redis_enabled_by_constant'] ) {
+									
+									echo '<p class="description">';
+									esc_html_e( 'Overridden by constant variables.', 'nginx-helper' );
+									echo '</p>';
+									
+								}
+								?>
+							</td>
+						</tr>
+
+						<tr>
+							<th><label for="redis_password"><?php esc_html_e( 'Password', 'nginx-helper' ); ?></label></th>
+							<td>
+								<div class="password-wrapper">
+									<input id="redis_password" class="medium-text password-input" type="password" name="redis_password" value="<?php echo esc_attr( $nginx_helper_settings['redis_password'] ); ?>" <?php echo ( $nginx_helper_settings['redis_enabled_by_constant'] ) ? 'readonly="readonly"' : ''; ?> />
+									<button type="button" class="password-show-hide-btn"><span class="dashicons dashicons-hidden password-input-icon"></span></button>
+								</div>
+								<?php
+								if ( $nginx_helper_settings['redis_enabled_by_constant'] ) {
+									echo '<p class="description">';
+									esc_html_e( 'Overridden by constant variables.', 'nginx-helper' );
+									echo '</p>';
+									
 								}
 								?>
 							</td>
@@ -489,6 +603,70 @@ if ( is_multisite() ) {
 											__( 'when a <strong>comment</strong> is <strong>unapproved/deleted</strong>.', 'nginx-helper' ),
 											array( 'strong' => array() )
 										);
+									?>
+								</label>
+								<br />
+							</fieldset>
+						</td>
+					</tr>
+				</table>
+				<table class="form-table rtnginx-table">
+					<tr valign="top">
+						<th scope="row">
+							<h4>
+								<?php esc_html_e( 'Purge Feeds:', 'nginx-helper' ); ?>
+							</h4>
+						</th>
+						<td>
+							<fieldset>
+								<legend class="screen-reader-text">
+									<span>
+										&nbsp;
+										<?php
+											esc_html_e( 'purge feeds', 'nginx-helper' );
+										?>
+									</span>
+								</legend>
+								<label for="purge_feeds">
+									<input type="checkbox" value="1" id="purge_feeds" name="purge_feeds" <?php checked( $nginx_helper_settings['purge_feeds'], 1 ); ?> />
+									&nbsp;
+									<?php
+										echo wp_kses(
+											__( 'purge <strong>feeds</strong> along with <strong>posts</strong> & <strong>pages</strong>.', 'nginx-helper' ),
+											array( 'strong' => array() )
+										);
+									?>
+								</label>
+								<br />
+							</fieldset>
+						</td>
+					</tr>
+				</table>
+				<table class="form-table rtnginx-table">
+					<tr valign="top">
+						<th scope="row">
+							<h4>
+				<?php esc_html_e( 'Purge AMP URL:', 'nginx-helper' ); ?>
+							</h4>
+						</th>
+						<td>
+							<fieldset>
+								<legend class="screen-reader-text">
+									<span>
+										&nbsp;
+										<?php
+										esc_html_e( 'purge amp urls', 'nginx-helper' );
+										?>
+									</span>
+								</legend>
+								<label for="purge_amp_urls">
+									<input type="checkbox" value="1" id="purge_amp_urls" name="purge_amp_urls" <?php checked( $nginx_helper_settings['purge_amp_urls'], 1 ); ?> />
+									&nbsp;
+									<?php
+									echo wp_kses(
+										__( 'purge <strong>amp urls</strong> along with <strong>posts</strong> & <strong>pages</strong>.', 'nginx-helper' ),
+										array( 'strong' => array() )
+									);
 									?>
 								</label>
 								<br />

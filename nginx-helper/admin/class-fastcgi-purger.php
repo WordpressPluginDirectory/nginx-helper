@@ -57,7 +57,7 @@ class FastCGI_Purger extends Purger {
 
 				$this->delete_cache_file_for( $_url_purge );
 
-				if ( $feed ) {
+				if ( $feed && ! empty( $nginx_helper_admin->options['purge_feeds'] ) ) {
 
 					$feed_url = rtrim( $_url_purge_base, '/' ) . '/feed/';
 					$this->delete_cache_file_for( $feed_url );
@@ -79,7 +79,7 @@ class FastCGI_Purger extends Purger {
 
 				$this->do_remote_get( $_url_purge );
 
-				if ( $feed ) {
+				if ( $feed && ! empty( $nginx_helper_admin->options['purge_feeds'] ) ) {
 
 					$feed_url = rtrim( $_url_purge_base, '/' ) . '/feed/';
 					$this->do_remote_get( $feed_url );
@@ -90,7 +90,28 @@ class FastCGI_Purger extends Purger {
 				break;
 
 		}
+		
+		if( ( is_page() || is_single() ) && $nginx_helper_admin->options['purge_amp_urls'] ) {
+			$this->purge_amp_version( $url );
+		}
 
+	}
+	
+	/**
+	 * Purge AMP version of a URL.
+	 *
+	 * @param string $url_base The base URL to purge.
+	 */
+	private function purge_amp_version( $url_base ) {
+		$amp_url = sprintf( '%s/amp/', rtrim( $url_base, '/' ) );
+		
+		$this->log( '- Purging AMP URL | ' . $amp_url );
+		
+		if ( 'unlink_files' === $this->nginx_helper_admin->options['purge_method'] ) {
+			$this->delete_cache_file_for( $amp_url );
+		} else {
+			$this->do_remote_get( $amp_url );
+		}
 	}
 
 	/**
