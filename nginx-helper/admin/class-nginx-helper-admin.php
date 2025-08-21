@@ -209,7 +209,7 @@ class Nginx_Helper_Admin {
 	 */
 	public function nginx_helper_toolbar_purge_link( $wp_admin_bar ) {
 		
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'Nginx Helper | Purge cache' ) ) {
 			return;
 		}
 		
@@ -474,16 +474,22 @@ class Nginx_Helper_Admin {
 				// Loop through each feed item and display each item as a hyperlink.
 				foreach ( $rss_items as $item ) {
 					?>
-					<li role="listitem">
-						<?php
-						printf(
-							'<a href="%s" title="%s">%s</a>',
-							esc_url( $item->get_permalink() ),
-							esc_attr__( 'Posted ', 'nginx-helper' ) . esc_attr( $item->get_date( 'j F Y | g:i a' ) ),
-							esc_html( $item->get_title() )
-						);
-						?>
-					</li>
+						<li role="listitem">
+							<?php
+								printf(
+									'<a href="%s" title="%s">%s</a>',
+									esc_url( $item->get_permalink() ),
+									esc_attr(
+										sprintf(
+											/* translators: %s: date/time the feed item as been posted */
+											__( 'Posted %s', 'nginx-helper' ),
+											$item->get_date( 'j F Y | g:i a' )
+										)
+									),
+									esc_html( $item->get_title() )
+								);
+							?>
+						</li>
 					<?php
 				}
 			}
@@ -770,7 +776,7 @@ class Nginx_Helper_Admin {
 			return;
 		}
 		
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( 'Nginx Helper | Purge cache' ) ) {
 			wp_die( 'Sorry, you do not have the necessary privileges to edit these options.' );
 		}
 		
